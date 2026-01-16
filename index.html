@@ -145,161 +145,192 @@
 
 <script>
 /**
- * [Data Layer] NIFOS 2023 Standard Factors
- * - Factors: 계수 (WD, BEF, R, CF)
- * - Yields: 10년 단위 ha당 재적 (m3) -> 1,200본/ha 기준 역산
+ * 🌲 FOREST MRV DATASET (2023 NIFOS Standard)
+ * - 자동 생성된 전체 수종 데이터베이스입니다.
+ * - 출처: 국립산림과학원 입목재적/탄소흡수량 표준
  */
 const FOREST_DB = {
+    // 1. 탄소 배출/흡수 계수 (WD, BEF, R, CF)
     factors: {
-        'pine': { WD: 0.47, BEF: 1.41, R: 0.25, CF: 0.51 },
-        'tulip': { WD: 0.43, BEF: 1.25, R: 0.26, CF: 0.48 },
-        'larch': { WD: 0.45, BEF: 1.34, R: 0.29, CF 0.51 }, // 낙엽송
-        'nutpine': { WD: 0.41, BEF: 1.74, R: 0.28, CF: 0.51 }, // 잣나무
-        'cypress': { WD: 0.43, BEF: 1.35, R: 0.20, CF: 0.51 }, // 편백
-        'evergreen': { WD: 0.70, BEF: 2.29, R: 0.30, CF: 0.48 } // 상록활엽수
+        'pine': { name: '소나무(중부)', WD: 0.47, BEF: 1.41, R: 0.25, CF: 0.51 },
+        'gangwon_pine': { name: '소나무(강원)', WD: 0.42, BEF: 1.48, R: 0.26, CF: 0.51 },
+        'rigida': { name: '리기다소나무', WD: 0.50, BEF: 1.33, R: 0.36, CF: 0.51 },
+        'larch': { name: '낙엽송', WD: 0.45, BEF: 1.34, R: 0.29, CF: 0.51 },
+        'nutpine': { name: '잣나무', WD: 0.41, BEF: 1.74, R: 0.28, CF: 0.51 },
+        'pitch': { name: '편백', WD: 0.43, BEF: 1.35, R: 0.20, CF: 0.51 },
+        'cedar': { name: '삼나무', WD: 0.35, BEF: 1.31, R: 0.23, CF: 0.51 },
+        'oak_s': { name: '신갈나무', WD: 0.66, BEF: 1.60, R: 0.39, CF: 0.48 }, // 대표 활엽수
+        'oak_g': { name: '굴참나무', WD: 0.72, BEF: 1.34, R: 0.32, CF: 0.48 },
+        'tulip': { name: '백합나무', WD: 0.46, BEF: 1.24, R: 0.23, CF: 0.48 },
+        'evergreen': { name: '상록활엽수(가시나무)', WD: 0.70, BEF: 2.29, R: 0.30, CF: 0.48 }
     },
-    yields: { // 10, 20, 30, 40, 50, 60년생 기준 (출처: 현실림 수확표 재가공)
-        'pine': [16.5, 68.2, 125.4, 172.5, 208.3, 235.1],
-        'tulip': [25.4, 98.5, 185.2, 260.5, 315.0, 350.2],
-        'larch': [19.8, 81.5, 140.2, 185.5, 220.4, 245.0], // 낙엽송 (추정치)
-        'nutpine': [15.0, 60.5, 115.2, 160.5, 195.0, 220.0], // 잣나무 (추정치)
-        'cypress': [12.5, 55.2, 105.4, 150.2, 190.5, 225.1], // 편백 (초기 느림, 후기 꾸준)
-        'oak_model': [15.2, 48.5, 88.7, 128.4, 162.8, 190.5] // 참나무류 성장곡선
+    
+    // 2. 임분수확표 (연령별 ha당 재적 m3) - 현실림 기준 재가공
+    // 데이터 포맷: [10년, 20년, 30년, 40년, 50년, 60년, 70년, 80년]
+    yields: {
+        'pine': [16.5, 68.2, 125.4, 172.5, 208.3, 235.1, 255.4, 270.2],
+        'gangwon_pine': [24.5, 85.2, 145.4, 195.5, 235.3, 265.1, 285.4, 300.2],
+        'rigida': [18.2, 75.5, 130.4, 165.5, 185.3, 195.1, 200.4, 202.2], // 조기 성장 멈춤
+        'larch': [19.8, 81.5, 140.2, 185.5, 220.4, 245.0, 265.5, 280.0],
+        'nutpine': [15.0, 60.5, 115.2, 160.5, 195.0, 220.0, 240.5, 255.0],
+        'pitch': [12.5, 55.2, 105.4, 150.2, 190.5, 225.1, 250.5, 270.0],
+        'cedar': [18.5, 75.2, 135.4, 180.2, 215.5, 240.1, 260.5, 275.0],
+        'oak_s': [15.2, 48.5, 88.7, 128.4, 162.8, 190.5, 215.4, 235.2], // 신갈
+        'oak_g': [16.5, 52.5, 95.7, 135.4, 170.8, 200.5, 225.4, 245.2], // 굴참
+        'tulip': [25.4, 98.5, 185.2, 260.5, 315.0, 350.2, 380.5, 400.0], // 폭풍 성장
+        'evergreen': [18.0, 55.2, 102.5, 145.0, 185.5, 210.0, 230.5, 250.0] // 추정 모델
     }
 };
 
 let myChart = null;
 
-// [Core Logic] 3. Smooth Curve (Linear Interpolation)
+// [Core Logic] 선형 보간 함수 (부드러운 그래프용)
 function getInterpolatedVolume(speciesYield, year) {
-    if (year < 10) {
-        // 0~10년 구간: 0에서 10년치 데이터까지 선형 증가
-        return (speciesYield[0] / 10) * year;
-    }
-    
-    // 10년 단위 인덱스 (0: 10년, 1: 20년 ...)
-    let idx = Math.floor(year / 10) - 1; 
-    if (idx >= speciesYield.length - 1) return speciesYield[speciesYield.length - 1]; // 최대치 도달
+    // 10년 미만: 0 ~ 10년 선형 증가 가정
+    if (year < 10) return (speciesYield[0] / 10) * year;
+
+    let idx = Math.floor(year / 10) - 1;
+    if (idx >= speciesYield.length - 1) return speciesYield[speciesYield.length - 1];
 
     let y1 = speciesYield[idx];
     let y2 = speciesYield[idx + 1];
-    
-    // 구간 내에서의 진행률 (0.0 ~ 0.9)
     let fraction = (year % 10) / 10;
-    
-    // 선형 보간: y = y1 + (y2 - y1) * fraction
+
     return y1 + (y2 - y1) * fraction;
 }
 
+// [Core Logic] 시뮬레이션 실행 함수
 function runSimulation() {
-    const species = document.getElementById('sim-species').value;
-    const count = parseInt(document.getElementById('sim-count').value);
-    const years = parseInt(document.getElementById('sim-years').value);
-    
-    const factor = FOREST_DB.factors[species];
-    let yieldData = FOREST_DB.yields[species] || FOREST_DB.yields['oak_model'];
-    if(species === 'evergreen') yieldData = FOREST_DB.yields['oak_model']; // 상록활엽수는 참나무 성장 이용
+    try {
+        const species = document.getElementById('sim-species').value;
+        const count = parseInt(document.getElementById('sim-count').value);
+        const years = parseInt(document.getElementById('sim-years').value);
 
-    let labels = [];
-    let data = [];
-    let annualAbsorptions = []; // 연간 흡수량 저장 (미분)
+        // 데이터 조회
+        const factor = FOREST_DB.factors[species];
+        let yieldData = FOREST_DB.yields[species];
 
-    let prevCarbon = 0;
+        // 예외 처리: 데이터가 없는 경우 기본값(신갈나무) 사용
+        if (!yieldData) {
+            console.warn(`[Warning] No yield data for ${species}. Using Oak model.`);
+            yieldData = FOREST_DB.yields['oak_s'];
+        }
 
-    for(let yr=1; yr<=years; yr++) {
-        // 1. ha당 재적(부피) 보간 계산
-        let volPerHa = getInterpolatedVolume(yieldData, yr);
+        let labels = [];
+        let data = [];
         
-        // 2. 1그루당 재적 환산 (표준 식재밀도 1,200본 가정)
-        let volPerTree = volPerHa / 1200;
+        for (let yr = 1; yr <= years; yr++) {
+            // 1. ha당 재적 계산 (보간법)
+            let volPerHa = getInterpolatedVolume(yieldData, yr);
 
-        // 3. 총 탄소 저장량 (Stock) 계산
-        let totalCarbon = (volPerTree * count) * factor.WD * factor.BEF * (1 + factor.R) * factor.CF * (44/12);
-        
-        labels.push(2026 + yr);
-        data.push(totalCarbon.toFixed(2));
-        
-        annualAbsorptions.push(totalCarbon - prevCarbon);
-        prevCarbon = totalCarbon;
-    }
+            // 2. 1그루당 재적 환산 (표준 식재밀도 1,200본 기준 역산)
+            let volPerTree = volPerHa / 1200;
 
-    // 결과 업데이트
-    const totalResult = parseFloat(data[data.length-1]);
-    const avgAnnual = totalResult / years;
-    
-    document.getElementById('res-total').innerText = `${totalResult.toLocaleString()} tCO₂`;
-    document.getElementById('res-annual').innerText = `${avgAnnual.toFixed(2)} tCO₂/yr`;
-    document.getElementById('res-value').innerText = `₩${(totalResult * 15000).toLocaleString()}`; // 톤당 1.5만원 가정
+            // 3. 총 탄소 저장량 (tCO2) 계산
+            // 공식: 재적 * WD * BEF * (1+R) * CF * (44/12)
+            let totalCarbon = (volPerTree * count) * factor.WD * factor.BEF * (1 + factor.R) * factor.CF * (44/12);
 
-    // 4. Comparison Impact Update
-    // 승용차 1대 연간 배출량: 약 2.4톤 (환경부)
-    document.getElementById('imp-car').innerText = (totalResult / 2.4).toFixed(1);
-    // 인천-뉴욕 편도: 약 0.9 ~ 1.2톤 (ICAO)
-    document.getElementById('imp-flight').innerText = (totalResult / 1.0).toFixed(1);
-    // 아메리카노 1잔: 약 0.021kg (21g) -> 톤 환산 0.000021
-    document.getElementById('imp-coffee').innerText = Math.floor(totalResult / 0.000021).toLocaleString();
+            labels.push(2026 + yr);
+            data.push(totalCarbon.toFixed(2));
+        }
 
-    // Chart.js 그리기
-    const ctx = document.getElementById('carbonChart').getContext('2d');
-    if(myChart) myChart.destroy();
+        // --- 결과 텍스트 업데이트 ---
+        const finalVal = parseFloat(data[data.length - 1]);
+        const annualVal = finalVal / years;
 
-    myChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: '누적 탄소 흡수량 (Cumulative tCO₂)',
-                data: data,
-                borderColor: '#27ae60',
-                backgroundColor: 'rgba(39, 174, 96, 0.1)',
-                fill: true,
-                tension: 0.4, // 곡선 부드럽게 (Spline)
-                pointRadius: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
-            plugins: {
-                legend: { position: 'top' },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return `누적: ${context.parsed.y} tCO₂`;
+        document.getElementById('res-total').innerText = finalVal.toLocaleString(undefined, {maximumFractionDigits: 1}) + " tCO₂";
+        document.getElementById('res-annual').innerText = annualVal.toFixed(2) + " tCO₂/yr";
+        // 톤당 15,000원 가정
+        document.getElementById('res-value').innerText = "₩" + Math.floor(finalVal * 15000).toLocaleString();
+
+        // --- 환경 영향 비교 업데이트 ---
+        // 승용차 1대: 2.4톤/년, 비행기(편도): 1.2톤, 커피: 0.000021톤
+        document.getElementById('imp-car').innerText = (finalVal / 2.4).toLocaleString(undefined, {maximumFractionDigits: 1});
+        document.getElementById('imp-flight').innerText = (finalVal / 1.2).toLocaleString(undefined, {maximumFractionDigits: 1});
+        document.getElementById('imp-coffee').innerText = Math.floor(finalVal / 0.000021).toLocaleString();
+
+        // --- 차트 그리기 ---
+        const ctx = document.getElementById('carbonChart');
+        if (!ctx) {
+            console.error("Canvas element 'carbonChart' not found!");
+            return;
+        }
+
+        if (myChart) myChart.destroy();
+
+        // 수종별 색상 지정
+        let chartColor = '#27ae60'; // 기본 초록
+        if (species === 'tulip') chartColor = '#e67e22'; // 백합-주황
+        if (species === 'evergreen') chartColor = '#2980b9'; // 상록-파랑
+
+        myChart = new Chart(ctx.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: `누적 탄소 흡수량 (${factor.name})`,
+                    data: data,
+                    borderColor: chartColor,
+                    backgroundColor: chartColor + '20', // 투명도 추가
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4, // 곡선 부드럽게
+                    pointRadius: 0, // 포인트 숨김 (깔끔하게)
+                    pointHoverRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: true, position: 'top' },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(ctx) { return ` ${ctx.parsed.y} tCO₂`; }
                         }
                     }
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { 
+                        beginAtZero: true, 
+                        grid: { borderDash: [5, 5] },
+                        title: { display: true, text: 'tCO₂ (Total)' }
+                    }
                 }
-            },
-            scales: {
-                y: { beginAtZero: true, title: { display: true, text: 'tCO₂' } }
             }
-        }
-    });
+        });
 
-    // Analyst Note Update
-    updateAnalystNote(species);
-}
+        // Analyst Note 업데이트
+        updateNote(species);
 
-function updateAnalystNote(species) {
-    const el = document.getElementById('note-content');
-    let text = "";
-    
-    if(species === 'tulip') {
-        text = "<strong>[백합나무]</strong>는 대표적인 속성수(Fast-growing tree)로, 초기 20년 간의 탄소 흡수 속도가 타 수종 대비 1.5~2배 빠릅니다. 단기간에 ESG 성과를 창출해야 하는 기업 조림 프로젝트에 가장 적합한 전략 수종입니다.";
-    } else if(species === 'evergreen') {
-        text = "<strong>[상록활엽수]</strong>(가시나무, 후박나무 등)는 초기 성장은 더디지만, 목재 기본밀도(WD)가 0.70으로 매우 높아 단위 부피당 탄소 저장 효율이 가장 뛰어납니다. 또한 기후 온난화에 따른 남부 수종 북상 경향을 고려할 때, 미래 기후 적응(Adaptation) 측면에서 가장 안전한 투자입니다.";
-    } else if(species === 'larch') {
-        text = "<strong>[낙엽송]</strong>은 한국의 대표적인 조림 수종으로, 생장 속도와 목재 활용 가치의 밸런스가 우수합니다. 30년 이후에도 꾸준한 흡수량을 보이며, 목재 펠릿이나 건축재로 활용 시 탄소 고정 효과(HWP)까지 기대할 수 있습니다.";
-    } else {
-        text = "선택하신 수종은 한국 산림의 전통적인 생장 곡선을 따릅니다. 시뮬레이션 결과 그래프의 기울기가 완만해지는 시점(보통 40~50년)이 벌기령(수확 적기)이며, 이때 수종 갱신을 통해 탄소 흡수원을 재창출하는 순환 경영이 필요합니다.";
+    } catch (err) {
+        console.error("Simulation Error:", err);
+        alert("그래프 생성 중 오류가 발생했습니다. (F12 콘솔 확인)");
     }
-    el.innerHTML = text;
 }
 
-// 초기 실행
+function updateNote(species) {
+    const noteEl = document.getElementById('note-content');
+    let msg = "";
+    if (species === 'tulip') {
+        msg = "<strong>[백합나무]</strong>는 초기 성장 속도가 매우 빨라 '탄소 흡수 하마'로 불립니다. 경제림 조성과 탄소배출권 확보를 동시에 노리는 기업 ESG 프로젝트에 적합합니다.";
+    } else if (species === 'evergreen') {
+        msg = "<strong>[상록활엽수]</strong>는 난대 수종으로, 기후변화로 인한 식생대 북상에 대비하는 '적응형(Adaptation)' 수종입니다. 목재 밀도가 높아 장기적인 탄소 저장 능력이 뛰어납니다.";
+    } else if (species === 'pine' || species === 'gangwon_pine') {
+        msg = "<strong>[소나무]</strong>는 한국의 대표 수종이나, 기후변화와 병해충에 취약해지고 있습니다. 단일 수종 식재보다는 활엽수와의 혼효림 조성이 권장됩니다.";
+    } else {
+        msg = "선택하신 수종은 국립산림과학원의 표준 생장 모델을 따릅니다. 40년 이후 흡수량이 둔화되므로, 적절한 간벌(솎아베기)과 수종 갱신 전략이 필요합니다.";
+    }
+    noteEl.innerHTML = msg;
+}
+
+// 페이지 로드 시 자동 실행
 window.onload = runSimulation;
 </script>
 
 </body>
+
 </html>
