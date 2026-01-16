@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>산림탄소상쇄 MRV 시뮬레이터 Pro</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* 1. Wide Layout & Design */
+        :root { --primary: #27ae60; --dark: #2c3e50; --light: #f8f9fa; }
+        body { margin: 0; padding: 0; font-family: 'Pretendard', 'Noto Sans KR', sans-serif; background: #e9ecef; color: #333; }
+        
+        .container { max-width: 1400px; margin: 30px auto; padding: 20px; display: grid; grid-template-columns: 300px 1fr; gap: 20px; }
+        
+        /* 왼쪽 사이드바 (컨트롤 패널) */
+        .sidebar { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); height: fit-content; }
+        .logo { font-size: 1.4rem; font-weight: bold; color: var(--dark); margin-bottom: 25px; border-bottom: 2px solid var(--primary); padding-bottom: 10px; display: block; }
+        
+        .input-group { margin-bottom: 20px; }
+        .input-group label { display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; color: #555; }
+        .input-group select, .input-group input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem; box-sizing: border-box; }
+        
+        .btn-run { width: 100%; background: var(--primary); color: white; border: none; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.3s; font-size: 1rem; }
+        .btn-run:hover { background: #219150; transform: translateY(-2px); }
+
+        /* 오른쪽 메인 컨텐츠 */
+        .main-content { display: flex; flex-direction: column; gap: 20px; }
+        
+        /* 상단 카드 (요약 정보) */
+        .summary-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); display: flex; align-items: center; gap: 15px; }
+        .card-icon { width: 50px; height: 50px; background: #e8f6f3; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: var(--primary); }
+        .card-info h4 { margin: 0; font-size: 0.85rem; color: #888; }
+        .card-info p { margin: 5px 0 0; font-size: 1.2rem; font-weight: bold; color: var(--dark); }
+
+        /* 차트 영역 */
+        .chart-container { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); min-height: 400px; }
+        
+        /* 하단 분석 노트 & 비교 */
+        .bottom-section { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .analyst-note, .impact-box { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
+        .note-header { font-weight: bold; color: var(--dark); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        
+        .impact-list { list-style: none; padding: 0; margin: 0; }
+        .impact-item { display: flex; align-items: center; gap: 15px; padding: 10px 0; border-bottom: 1px solid #eee; }
+        .impact-item:last-child { border-bottom: none; }
+        .impact-icon { font-size: 1.2rem; width: 30px; text-align: center; }
+
+        @media (max-width: 900px) { .container { grid-template-columns: 1fr; } .summary-cards { grid-template-columns: 1fr; } .bottom-section { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="sidebar">
+        <span class="logo">🌲 Forest MRV Sim</span>
+        
+        <div class="input-group">
+            <label>🌱 수종 (Species)</label>
+            <select id="sim-species">
+                <option value="pine">소나무 (전통적 조림)</option>
+                <option value="tulip">백합나무 (속성수/경제수)</option>
+                <option value="larch">낙엽송 (Larch)</option>
+                <option value="nutpine">잣나무 (Nut Pine)</option>
+                <option value="cypress">편백 (Cypress)</option>
+                <option value="evergreen">상록활엽수 (기후적응형)</option>
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label>🔢 식재 본수 (Trees)</label>
+            <input type="number" id="sim-count" value="1000" step="100">
+        </div>
+
+        <div class="input-group">
+            <label>⏱️ 시뮬레이션 기간 (Years)</label>
+            <input type="number" id="sim-years" value="40" max="60" min="10">
+        </div>
+
+        <button class="btn-run" onclick="runSimulation()">시뮬레이션 실행</button>
+        
+        <div style="margin-top: 20px; font-size: 0.8rem; color: #999; line-height: 1.4;">
+            * 데이터 출처:<br>국립산림과학원 표준 탄소흡수량(2023)<br>국가 온실가스 인벤토리 계수 적용
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="summary-cards">
+            <div class="card">
+                <div class="card-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+                <div class="card-info">
+                    <h4>총 누적 흡수량</h4>
+                    <p id="res-total">0 tCO₂</p>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-icon"><i class="fa-solid fa-tree"></i></div>
+                <div class="card-info">
+                    <h4>연평균 흡수량</h4>
+                    <p id="res-annual">0 tCO₂/yr</p>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-icon"><i class="fa-solid fa-won-sign"></i></div>
+                <div class="card-info">
+                    <h4>예상 탄소배출권 가치</h4>
+                    <p id="res-value">₩0</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="carbonChart"></canvas>
+        </div>
+
+        <div class="bottom-section">
+            <div class="analyst-note">
+                <div class="note-header"><i class="fa-solid fa-pen-nib"></i> Analyst Note</div>
+                <p id="note-content" style="font-size: 0.95rem; line-height: 1.6; color: #555;">
+                    시뮬레이션을 실행하면 수종별 생장 특성과 탄소 흡수 패턴에 대한 전문 분석 코멘트가 여기에 표시됩니다.
+                </p>
+            </div>
+
+            <div class="impact-box">
+                <div class="note-header"><i class="fa-solid fa-scale-balanced"></i> Environmental Impact</div>
+                <ul class="impact-list">
+                    <li class="impact-item">
+                        <div class="impact-icon">🚗</div>
+                        <div>승용차 <strong id="imp-car">0</strong>대의 연간 배출량 상쇄</div>
+                    </li>
+                    <li class="impact-item">
+                        <div class="impact-icon">✈️</div>
+                        <div>인천-뉴욕 편도 <strong id="imp-flight">0</strong>회 비행 배출량 상쇄</div>
+                    </li>
+                    <li class="impact-item">
+                        <div class="impact-icon">☕</div>
+                        <div>아메리카노 <strong id="imp-coffee">0</strong>잔 생산 배출량 상쇄</div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+/**
+ * [Data Layer] NIFOS 2023 Standard Factors
+ * - Factors: 계수 (WD, BEF, R, CF)
+ * - Yields: 10년 단위 ha당 재적 (m3) -> 1,200본/ha 기준 역산
+ */
+const FOREST_DB = {
+    factors: {
+        'pine': { WD: 0.47, BEF: 1.41, R: 0.25, CF: 0.51 },
+        'tulip': { WD: 0.43, BEF: 1.25, R: 0.26, CF: 0.48 },
+        'larch': { WD: 0.45, BEF: 1.34, R: 0.29, CF 0.51 }, // 낙엽송
+        'nutpine': { WD: 0.41, BEF: 1.74, R: 0.28, CF: 0.51 }, // 잣나무
+        'cypress': { WD: 0.43, BEF: 1.35, R: 0.20, CF: 0.51 }, // 편백
+        'evergreen': { WD: 0.70, BEF: 2.29, R: 0.30, CF: 0.48 } // 상록활엽수
+    },
+    yields: { // 10, 20, 30, 40, 50, 60년생 기준 (출처: 현실림 수확표 재가공)
+        'pine': [16.5, 68.2, 125.4, 172.5, 208.3, 235.1],
+        'tulip': [25.4, 98.5, 185.2, 260.5, 315.0, 350.2],
+        'larch': [19.8, 81.5, 140.2, 185.5, 220.4, 245.0], // 낙엽송 (추정치)
+        'nutpine': [15.0, 60.5, 115.2, 160.5, 195.0, 220.0], // 잣나무 (추정치)
+        'cypress': [12.5, 55.2, 105.4, 150.2, 190.5, 225.1], // 편백 (초기 느림, 후기 꾸준)
+        'oak_model': [15.2, 48.5, 88.7, 128.4, 162.8, 190.5] // 참나무류 성장곡선
+    }
+};
+
+let myChart = null;
+
+// [Core Logic] 3. Smooth Curve (Linear Interpolation)
+function getInterpolatedVolume(speciesYield, year) {
+    if (year < 10) {
+        // 0~10년 구간: 0에서 10년치 데이터까지 선형 증가
+        return (speciesYield[0] / 10) * year;
+    }
+    
+    // 10년 단위 인덱스 (0: 10년, 1: 20년 ...)
+    let idx = Math.floor(year / 10) - 1; 
+    if (idx >= speciesYield.length - 1) return speciesYield[speciesYield.length - 1]; // 최대치 도달
+
+    let y1 = speciesYield[idx];
+    let y2 = speciesYield[idx + 1];
+    
+    // 구간 내에서의 진행률 (0.0 ~ 0.9)
+    let fraction = (year % 10) / 10;
+    
+    // 선형 보간: y = y1 + (y2 - y1) * fraction
+    return y1 + (y2 - y1) * fraction;
+}
+
+function runSimulation() {
+    const species = document.getElementById('sim-species').value;
+    const count = parseInt(document.getElementById('sim-count').value);
+    const years = parseInt(document.getElementById('sim-years').value);
+    
+    const factor = FOREST_DB.factors[species];
+    let yieldData = FOREST_DB.yields[species] || FOREST_DB.yields['oak_model'];
+    if(species === 'evergreen') yieldData = FOREST_DB.yields['oak_model']; // 상록활엽수는 참나무 성장 이용
+
+    let labels = [];
+    let data = [];
+    let annualAbsorptions = []; // 연간 흡수량 저장 (미분)
+
+    let prevCarbon = 0;
+
+    for(let yr=1; yr<=years; yr++) {
+        // 1. ha당 재적(부피) 보간 계산
+        let volPerHa = getInterpolatedVolume(yieldData, yr);
+        
+        // 2. 1그루당 재적 환산 (표준 식재밀도 1,200본 가정)
+        let volPerTree = volPerHa / 1200;
+
+        // 3. 총 탄소 저장량 (Stock) 계산
+        let totalCarbon = (volPerTree * count) * factor.WD * factor.BEF * (1 + factor.R) * factor.CF * (44/12);
+        
+        labels.push(2026 + yr);
+        data.push(totalCarbon.toFixed(2));
+        
+        annualAbsorptions.push(totalCarbon - prevCarbon);
+        prevCarbon = totalCarbon;
+    }
+
+    // 결과 업데이트
+    const totalResult = parseFloat(data[data.length-1]);
+    const avgAnnual = totalResult / years;
+    
+    document.getElementById('res-total').innerText = `${totalResult.toLocaleString()} tCO₂`;
+    document.getElementById('res-annual').innerText = `${avgAnnual.toFixed(2)} tCO₂/yr`;
+    document.getElementById('res-value').innerText = `₩${(totalResult * 15000).toLocaleString()}`; // 톤당 1.5만원 가정
+
+    // 4. Comparison Impact Update
+    // 승용차 1대 연간 배출량: 약 2.4톤 (환경부)
+    document.getElementById('imp-car').innerText = (totalResult / 2.4).toFixed(1);
+    // 인천-뉴욕 편도: 약 0.9 ~ 1.2톤 (ICAO)
+    document.getElementById('imp-flight').innerText = (totalResult / 1.0).toFixed(1);
+    // 아메리카노 1잔: 약 0.021kg (21g) -> 톤 환산 0.000021
+    document.getElementById('imp-coffee').innerText = Math.floor(totalResult / 0.000021).toLocaleString();
+
+    // Chart.js 그리기
+    const ctx = document.getElementById('carbonChart').getContext('2d');
+    if(myChart) myChart.destroy();
+
+    myChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: '누적 탄소 흡수량 (Cumulative tCO₂)',
+                data: data,
+                borderColor: '#27ae60',
+                backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                fill: true,
+                tension: 0.4, // 곡선 부드럽게 (Spline)
+                pointRadius: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { position: 'top' },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `누적: ${context.parsed.y} tCO₂`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: { beginAtZero: true, title: { display: true, text: 'tCO₂' } }
+            }
+        }
+    });
+
+    // Analyst Note Update
+    updateAnalystNote(species);
+}
+
+function updateAnalystNote(species) {
+    const el = document.getElementById('note-content');
+    let text = "";
+    
+    if(species === 'tulip') {
+        text = "<strong>[백합나무]</strong>는 대표적인 속성수(Fast-growing tree)로, 초기 20년 간의 탄소 흡수 속도가 타 수종 대비 1.5~2배 빠릅니다. 단기간에 ESG 성과를 창출해야 하는 기업 조림 프로젝트에 가장 적합한 전략 수종입니다.";
+    } else if(species === 'evergreen') {
+        text = "<strong>[상록활엽수]</strong>(가시나무, 후박나무 등)는 초기 성장은 더디지만, 목재 기본밀도(WD)가 0.70으로 매우 높아 단위 부피당 탄소 저장 효율이 가장 뛰어납니다. 또한 기후 온난화에 따른 남부 수종 북상 경향을 고려할 때, 미래 기후 적응(Adaptation) 측면에서 가장 안전한 투자입니다.";
+    } else if(species === 'larch') {
+        text = "<strong>[낙엽송]</strong>은 한국의 대표적인 조림 수종으로, 생장 속도와 목재 활용 가치의 밸런스가 우수합니다. 30년 이후에도 꾸준한 흡수량을 보이며, 목재 펠릿이나 건축재로 활용 시 탄소 고정 효과(HWP)까지 기대할 수 있습니다.";
+    } else {
+        text = "선택하신 수종은 한국 산림의 전통적인 생장 곡선을 따릅니다. 시뮬레이션 결과 그래프의 기울기가 완만해지는 시점(보통 40~50년)이 벌기령(수확 적기)이며, 이때 수종 갱신을 통해 탄소 흡수원을 재창출하는 순환 경영이 필요합니다.";
+    }
+    el.innerHTML = text;
+}
+
+// 초기 실행
+window.onload = runSimulation;
+</script>
+
+</body>
+</html>
